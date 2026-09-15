@@ -9,18 +9,41 @@
 /*
  * Table-cell tasks reproduce the list DOM checkbox themes target
  * (ul.contains-task-list > li.task-list-item), so every theme's own selectors
- * match - not only themes that style a standalone input[data-task]. Strip the
- * list's block/marker artifacts so it still sits inline inside the cell.
+ * match - not only themes that style a standalone input[data-task]. But that DOM
+ * also drags in the theme's LIST layout, which reserves a left gutter for the
+ * marker: Minimal pulls the checkbox in with `--checkbox-margin: 0 6px 0 -2em`,
+ * and other themes use a negative margin-inline-start. A narrow table cell has no
+ * gutter, so the box gets pulled off / clipped and becomes invisible AND
+ * unclickable - which is what broke both the render and the right-click menu in
+ * 0.9.3. Neutralize the gutter so the box + label sit inline in the cell; this
+ * does NOT touch how the theme paints the status glyph on the input.
  */
 .tot-cell-list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
 	display: inline;
+	/* Cancel the theme's negative gutter margin (consumed by the core checkbox
+	 * rule as `margin: var(--checkbox-margin)`), scoped to our in-cell list. */
+	--checkbox-margin: 0;
 }
 .tot-cell-list > li.tot-task {
-	margin: 0;
-	padding: 0;
+	margin: 0 !important;
+	padding: 0 !important;
+	text-indent: 0 !important;
+}
+/* Kill any residual negative gutter margin a theme sets directly on the box. */
+.tot-cell-list > li.tot-task > input.task-list-item-checkbox {
+	margin: 0 !important;
+	margin-inline-start: 0 !important;
+	/* The box is display-only; the <li> handles click/right-click. Making the
+	 * input pointer-transparent lets events reach the <li> instead of being eaten
+	 * by the theme's checkbox styling or Obsidian's native task handling. */
+	pointer-events: none;
+}
+/* The whole cell task is interactive (menu on the <li>); show it. */
+.tot-cell-list > li.tot-task {
+	cursor: pointer;
 }
 
 /*

@@ -193,15 +193,22 @@ export default class FlexibleTasksPlugin extends Plugin {
 
 		wrap.createSpan({ cls: "tot-task-label", text: label });
 
-		// Interaction reads the REAL char from wrap.dataset.task; input.dataset.task
-		// may be theme-mapped (e.g. an unplanned char shows as Important).
-		input.addEventListener("click", (evt) => {
+		// Interaction is bound to the <li>, not the <input>. Once the input lives
+		// inside li.task-list-item, the active theme's checkbox styling and/or
+		// Obsidian's native task handling sit over the input and swallow its
+		// click/contextmenu, so a listener on the input never fires (0.9.3: menu
+		// gone). The <li> is the stable, full-size target - right-clicking the box
+		// OR the label opens the menu - and the input is made pointer-transparent in
+		// CSS so events fall through to here. Reads the REAL char from
+		// wrap.dataset.task; input.dataset.task may be theme-mapped (e.g. an
+		// unplanned char shows as Important).
+		wrap.addEventListener("click", (evt) => {
 			evt.preventDefault();
 			const current = wrap.dataset.task ?? " ";
 			const next = isDone(current) ? " " : "x";
 			void this.writeCellStatus(view, table, cell, next, wrap, input);
 		});
-		input.addEventListener("contextmenu", (evt) =>
+		wrap.addEventListener("contextmenu", (evt) =>
 			this.showStatusMenu(evt, wrap.dataset.task ?? " ", (char) => {
 				void this.writeCellStatus(view, table, cell, char, wrap, input);
 			})
