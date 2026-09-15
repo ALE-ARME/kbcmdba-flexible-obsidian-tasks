@@ -7,6 +7,23 @@
 }
 
 /*
+ * Table-cell tasks reproduce the list DOM checkbox themes target
+ * (ul.contains-task-list > li.task-list-item), so every theme's own selectors
+ * match - not only themes that style a standalone input[data-task]. Strip the
+ * list's block/marker artifacts so it still sits inline inside the cell.
+ */
+.tot-cell-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: inline;
+}
+.tot-cell-list > li.tot-task {
+	margin: 0;
+	padding: 0;
+}
+
+/*
  * Strikethrough for finished/abandoned statuses. Applies to our synthesized
  * table-cell labels; block-list tasks are struck by the theme (native task DOM).
  */

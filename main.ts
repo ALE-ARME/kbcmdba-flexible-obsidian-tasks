@@ -45,6 +45,13 @@ const PLANNED = new Set([...MENU_STATUSES.map((s) => s.char), "X"]);
  */
 const themeTask = (c: string): string => (PLANNED.has(c) ? c : "!");
 
+/** Human-readable status name for a hover tooltip (theme-independent fallback). */
+const statusTooltip = (c: string): string => {
+	const known = MENU_STATUSES.find((s) => s.char === c);
+	const name = known ? known.label : isDone(c) ? "Done" : `Custom "${c}"`;
+	return `Task status: ${name}`;
+};
+
 interface FlexibleTasksSettings {
 	styleBlockTasks: boolean;
 }
@@ -131,8 +138,12 @@ export default class FlexibleTasksPlugin extends Plugin {
 
 			// Block-list tasks outside tables (opt-in).
 			if (this.settings.styleBlockTasks) {
+				// Exclude our synthesized table-cell li's - they carry task-list-item
+				// so themes style them, but they are not source block tasks.
 				view.contentEl
-					.querySelectorAll<HTMLLIElement>("li.task-list-item")
+					.querySelectorAll<HTMLLIElement>(
+						"li.task-list-item:not(.tot-cell-task)"
+					)
 					.forEach((li) => this.decorateListItem(li, view));
 			}
 		}
@@ -148,21 +159,37 @@ export default class FlexibleTasksPlugin extends Plugin {
 		table: HTMLTableElement
 	) {
 		cell.empty();
-		const wrap = cell.createDiv({ cls: "tot-task" });
+
+		// Reproduce the task-list DOM that checkbox themes target - a
+		// `ul.contains-task-list > li.task-list-item[data-task] > input.task-list-item-checkbox`
+		// structure - rather than a bare <input>. A lone input only picks up a status
+		// icon from themes (like Minimal) that style `input[data-task]:checked`
+		// standalone; most checkbox themes key on the `li.task-list-item[data-task]`
+		// ancestry, which a bare input in a <td> can't provide - so in those themes
+		// every custom status collapsed to a plain checked box, losing its meaning
+		// (issue #1: prism theme). Recreating the list structure lets each theme's own
+		// selectors match, so Minimal keeps its icons and other themes render their
+		// glyphs too. The `tot-cell-task` class marks these synthesized li's so the
+		// block-task scanner skips them (they must NOT count toward its DOM index).
+		const list = cell.createEl("ul", { cls: "contains-task-list tot-cell-list" });
+		const wrap = list.createEl("li", {
+			cls: "task-list-item tot-task tot-cell-task",
+		});
 		wrap.dataset.task = status;
+		// is-checked mirrors Obsidian's own semantics (done only), so themes that key
+		// on it don't style an in-progress/question status as finished.
+		wrap.toggleClass("is-checked", isDone(status));
 		if (isStruck(status)) wrap.addClass("is-struck");
 
-		// Defer rendering to the theme: emit a real task-list checkbox carrying the
-		// status char in data-task, rather than drawing our own box. Minimal (and
-		// other checkbox themes) style `input[data-task="X"]:checked` standalone -
-		// no `li.task-list-item` ancestry required - so a bare input in a <td> picks
-		// up the theme's status icon for free. GFM won't make one here (cells are
-		// inline-only), which is the whole reason this plugin exists.
 		const input = wrap.createEl("input", {
 			cls: "task-list-item-checkbox",
 			attr: { type: "checkbox" },
 		});
 		this.paintCheckbox(input, status);
+
+		// Universal safety net: even a theme that styles neither the standalone input
+		// nor the list ancestry still exposes the status on hover, so it's never lost.
+		wrap.title = statusTooltip(status);
 
 		wrap.createSpan({ cls: "tot-task-label", text: label });
 
@@ -351,7 +378,9 @@ export default class FlexibleTasksPlugin extends Plugin {
 		// source (which re-runs decorateCell), so this just avoids any flash.
 		if (changed) {
 			wrap.dataset.task = newChar;
+			wrap.toggleClass("is-checked", isDone(newChar));
 			wrap.toggleClass("is-struck", isStruck(newChar));
+			wrap.title = statusTooltip(newChar);
 			this.paintCheckbox(input, newChar);
 		}
 	}
@@ -369,8 +398,11 @@ export default class FlexibleTasksPlugin extends Plugin {
 		const file = view.file;
 		if (!(file instanceof TFile)) return;
 
+		// Must match scanReadingViews' selector exactly - our synthesized cell li's
+		// carry task-list-item but are not source block tasks, so excluding them keeps
+		// the k-th DOM task aligned with the k-th block-task line in the source.
 		const domTasks = Array.from(
-			view.contentEl.querySelectorAll("li.task-list-item")
+			view.contentEl.querySelectorAll("li.task-list-item:not(.tot-cell-task)")
 		);
 		const index = domTasks.indexOf(li);
 		if (index < 0) return;
