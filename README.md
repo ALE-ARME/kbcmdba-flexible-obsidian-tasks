@@ -18,17 +18,26 @@ A Markdown table cell is inline-only, so a task like `- [ ] One` written in a ce
 
 ## Themes
 
-Status icons are drawn by your **checkbox theme**, not by the plugin. It works best with the [Minimal](https://minimal.guide/) theme, which this plugin is developed against; using other themes may yield different results. With the default theme (no checkbox styling) statuses render as plain checkboxes.
+Status icons are drawn by your **checkbox theme**, not by the plugin. Flexible Tasks puts a real checkbox carrying `data-task="<char>"` in place; any theme that styles task statuses from `data-task` renders the icons.
+
+- **[Minimal](https://minimal.guide/)** — works out of the box. This is the theme the plugin is developed against.
+- **Other checkbox themes** — many render custom statuses too, but some ship the feature turned *off*. For example, **Prism** renders them once you install the [Style Settings](https://github.com/mgmeyers/obsidian-style-settings) plugin and enable **Prism → "Enable Prism Alternative Checkboxes"** (it defaults to off). Other themes have their own equivalent toggle. These aren't officially tested, but the standard `data-task` mechanism means they generally work once their alternative-checkbox styling is enabled.
+- **Default theme / no checkbox styling** — statuses still round-trip in the source and appear on hover, but render as plain checkboxes without a per-status glyph.
+
+![The same table and block list under the Prism theme with alternative checkboxes enabled, rendered with Prism's Lucide status icons](docs/demo-prism.png)
+
+Whatever the theme, the status character is always preserved in your Markdown — only the *rendered glyph* depends on the theme.
 
 ## Usage
 
 Write a table whose cells contain tasks:
 
 ```markdown
-| Today       | This Week      | Someday        |
-| :---------- | :------------- | :------------- |
-| - [ ] One   | - [/] Draft    | - [ ] Learn Go |
-| - [x] Two   | - [ ] Review   | - [-] Old idea |
+| Today       | This Week      | Someday          |
+| :---------- | :------------- | :--------------- |
+| - [>] One   | - [/] Draft PR | - [ ] Learn Rust |
+| - [x] Two   | - [ ] Review   | - [-] Old idea   |
+| - [/] Three | - [>] Deferred | - [?] Maybe      |
 ```
 
 Each `- [ ]` becomes a clickable checkbox.

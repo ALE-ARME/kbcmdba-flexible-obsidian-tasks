@@ -24,7 +24,7 @@ The source is just ordinary task syntax placed inside table cells:
 ```markdown
 | Today       | This Week      | Someday          |
 | :---------- | :------------- | :--------------- |
-| - [ ] One   | - [/] Draft PR | - [ ] Learn Rust |
+| - [>] One   | - [/] Draft PR | - [ ] Learn Rust |
 | - [x] Two   | - [ ] Review   | - [-] Old idea   |
 | - [/] Three | - [>] Deferred | - [?] Maybe      |
 ```
