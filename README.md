@@ -1,5 +1,11 @@
 # Flexible Tasks
 
+> **Fork di ARME** — [`ALE-ARME/kbcmdba-flexible-obsidian-tasks`](https://github.com/ALE-ARME/kbcmdba-flexible-obsidian-tasks), derivata da [`kbcmdba/kbcmdba-flexible-obsidian-tasks`](https://github.com/kbcmdba/kbcmdba-flexible-obsidian-tasks).
+> Modifiche rispetto all'originale (v1.0.1):
+>
+> - la tabella viene mappata al sorgente confrontando la **riga di intestazione** invece dell'indice DOM, così non compare più "couldn't map the table to the source" quando nell'anteprima ci sono più tabelle, embed o righe con `|`
+> - le tabelle dentro i **callout** vengono riconosciute e riscritte preservando il prefisso `>`
+
 An [Obsidian](https://obsidian.md) plugin for interactive task checkboxes **inside Markdown table cells** — and custom task statuses everywhere, rendered by your theme.
 
 ![Flexible Tasks in Obsidian with the Minimal theme: interactive checkboxes inside table cells and in an ordinary list, showing to-do, done, in-progress, cancelled, forwarded, question, and important statuses](docs/demo.png)
