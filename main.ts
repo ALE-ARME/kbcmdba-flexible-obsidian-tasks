@@ -358,20 +358,20 @@ export default class FlexibleTasksPlugin extends Plugin {
 		const rowIndex = row.rowIndex;
 		const colIndex = cell.cellIndex;
 
-		const domTables = Array.from(view.contentEl.querySelectorAll("table"));
-		const tableIndex = domTables.indexOf(table);
-		if (tableIndex < 0) return;
-
 		// vault.process is an atomic read-modify-write (no read/modify race).
 		let changed = false;
 		await this.app.vault.process(file, (content) => {
 			const lines = content.split("\n");
 			const blocks = this.findTableBlocks(lines);
-			if (tableIndex >= blocks.length) {
+			// Dom order and source order don't always agree (embeds, callouts,
+			// tables after stray pipe lines), so identify the table by its header
+			// row instead of by its index in the view.
+			const blockStart = this.matchTableByHeader(table, lines, blocks);
+			if (blockStart === undefined) {
 				new Notice("Flexible Tasks: couldn't map the table to the source.");
 				return content;
 			}
-			const srcLineNo = blocks[tableIndex] + (rowIndex === 0 ? 0 : rowIndex + 1);
+			const srcLineNo = blockStart + (rowIndex === 0 ? 0 : rowIndex + 1);
 			if (srcLineNo < 0 || srcLineNo >= lines.length) return content;
 
 			const rewritten = this.rewriteCellStatus(lines[srcLineNo], colIndex, newChar);
@@ -446,9 +446,42 @@ export default class FlexibleTasksPlugin extends Plugin {
 		const starts: number[] = [];
 		const isDelim = (s: string) => /^[\s|:-]+$/.test(s) && s.includes("-");
 		for (let i = 0; i + 1 < lines.length; i++) {
-			if (lines[i].includes("|") && isDelim(lines[i + 1])) starts.push(i);
+			const cur = this.stripPrefix(lines[i]);
+			const next = this.stripPrefix(lines[i + 1]);
+			if (cur.includes("|") && isDelim(next)) starts.push(i);
 		}
 		return starts;
+	}
+
+	/** Leading blockquote/indent prefix of a line, so callout tables still match. */
+	private stripPrefix(line: string): string {
+		const m = line.match(/^((?:\s*>)*\s*)/);
+		return m ? m[1] : "";
+	}
+
+	/**
+	 * Find the source line of the table whose header row matches the rendered
+	 * table's header cells. Falls back to the only table when there is just one.
+	 */
+	private matchTableByHeader(
+		table: HTMLTableElement,
+		lines: string[],
+		blocks: number[]
+	): number | undefined {
+		const norm = (s: string | null) =>
+			(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+		const firstRow = table.querySelector("tr");
+		if (!firstRow) return undefined;
+		const header = Array.from(firstRow.children).map((c) => norm(c.textContent));
+		for (const start of blocks) {
+			const cells = this.stripPrefix(lines[start])
+				.split("|")
+				.map(norm)
+				.filter((c) => c !== "");
+			if (cells.length !== header.length) continue;
+			if (cells.every((c, i) => c === header[i])) return start;
+		}
+		return blocks.length === 1 ? blocks[0] : undefined;
 	}
 
 	private rewriteCellStatus(
@@ -456,7 +489,8 @@ export default class FlexibleTasksPlugin extends Plugin {
 		colIndex: number,
 		newChar: string
 	): string | null {
-		const parts = line.split("|");
+		const prefix = this.stripPrefix(line);
+		const parts = line.slice(prefix.length).split("|");
 		const hasLeading = parts.length > 0 && parts[0].trim() === "";
 		const target = (hasLeading ? 1 : 0) + colIndex;
 		if (target < 0 || target >= parts.length) return null;
@@ -464,7 +498,7 @@ export default class FlexibleTasksPlugin extends Plugin {
 		const replaced = field.replace(/\[.\]/, `[${newChar}]`);
 		if (replaced === field) return null;
 		parts[target] = replaced;
-		return parts.join("|");
+		return prefix + parts.join("|");
 	}
 }
 

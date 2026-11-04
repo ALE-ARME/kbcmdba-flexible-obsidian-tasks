@@ -1,10 +1,10 @@
 {
 	"id": "flexible-tasks",
 	"name": "Flexible Tasks",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.4.0",
 	"description": "Interactive task checkboxes in Markdown table cells and lists, with custom statuses such as done, in progress, cancelled, forwarded, and more, styled by your theme.",
-	"author": "KB Benton",
-	"authorUrl": "https://github.com/kbcmdba",
+	"author": "ARME",
+	"authorUrl": "https://github.com/ALE-ARME",
 	"isDesktopOnly": false
 }
