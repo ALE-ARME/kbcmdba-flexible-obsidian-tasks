@@ -61,12 +61,14 @@
  * single-line cell; inside the editor the <td> inherits the code line box
  * (vertical-align: top, editor line-height), so the inline-flex task anchors
  * to the top-left corner. Center it explicitly, scoped to the editor only.
+ * min-height stays auto: the editor already gives the cell the row height,
+ * and forcing 100% pushed the box to the bottom of the cell.
  */
 .markdown-source-view .tot-cell-list {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	min-height: 100%;
+	min-height: auto;
 }
 .markdown-source-view td:has(> .tot-cell-list),
 .markdown-source-view th:has(> .tot-cell-list) {
