@@ -118,14 +118,12 @@ export default class FlexibleTasksPlugin extends Plugin {
 		for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
 			const view = leaf.view;
 			if (!(view instanceof MarkdownView)) continue;
-			// Boxes render in READING view only. In the editor (Live Preview /
-			// source) we leave Obsidian's native checkboxes in place and offer the
-			// "Checkbox choices" submenu instead - injecting our boxes into the
-			// editor's CM6 DOM is what was blocking that submenu from working.
-			if (view.getMode() !== "preview") continue;
 
 			// Task cells inside tables. Headers and already-decorated cells no
 			// longer contain "- [ ] ..." text, so they simply won't match.
+			// Runs in Reading view and in Live Preview: in Live Preview the cell
+			// text is still a CM6 line, so the boxes are drawn from the rendered
+			// table cells that sit inside the editor.
 			view.contentEl
 				.querySelectorAll<HTMLTableCellElement>("td, th")
 				.forEach((cell) => {
@@ -136,8 +134,10 @@ export default class FlexibleTasksPlugin extends Plugin {
 					this.decorateCell(cell, match[1], (match[2] ?? "").trim(), view, table);
 				});
 
-			// Block-list tasks outside tables (opt-in).
-			if (this.settings.styleBlockTasks) {
+			// Block-list tasks outside tables (opt-in). Only in Reading view:
+			// Obsidian already renders its own native checkboxes in the editor and
+			// styling those is the theme's job.
+			if (this.settings.styleBlockTasks && view.getMode() === "preview") {
 				// Exclude our synthesized table-cell li's - they carry task-list-item
 				// so themes style them, but they are not source block tasks.
 				view.contentEl
