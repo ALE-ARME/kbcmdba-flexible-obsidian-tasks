@@ -57,20 +57,36 @@
 }
 
 /*
- * Live Preview alignment. In Reading view the table's own CSS centers a
- * single-line cell; inside the editor the <td> inherits the code line box,
- * so the inline-flex task anchors to the top-left corner. Center it
- * horizontally only. Everything that could change the cell's height is
- * avoided: a flex container with align-items: center or a vertical-align on
- * the <td> makes the row as tall as the editor line and inflates the table.
+ * Live Preview. The plugin no longer injects its own list markup into the
+ * editor: in Live Preview Obsidian renders the cell as normal inline text and
+ * we only wrap the "- [ ] ..." marker so it looks like a checkbox. Wrapping a
+ * whole ul/li/flex structure inside the editor's table cell is what changed
+ * the row height and shifted the table.
  */
-.markdown-source-view .tot-cell-list {
-	display: block;
-	text-align: center;
+.markdown-source-view .tot-cell-box {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	margin: 0 0.35em 0 0;
+	vertical-align: -0.1em;
+	border: 1px solid var(--checkbox-border-color, var(--text-muted));
+	border-radius: var(--checkbox-radius, 2px);
+	background: var(--background-primary);
+	cursor: pointer;
+	position: relative;
 }
-.markdown-source-view .tot-cell-list > li.tot-task {
-	display: inline-flex;
-	line-height: 1.2;
-	min-height: 0;
-	vertical-align: baseline;
+.markdown-source-view .tot-cell-box.tot-cell-box-done {
+	background: var(--checkbox-color, var(--interactive-accent));
+	border-color: var(--checkbox-color, var(--interactive-accent));
+}
+.markdown-source-view .tot-cell-box.tot-cell-box-done::after {
+	content: "";
+	position: absolute;
+	left: 0.28em;
+	top: 0.08em;
+	width: 0.3em;
+	height: 0.6em;
+	border: solid var(--text-on-accent, #fff);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg);
 }

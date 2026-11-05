@@ -121,9 +121,10 @@ export default class FlexibleTasksPlugin extends Plugin {
 
 			// Task cells inside tables. Headers and already-decorated cells no
 			// longer contain "- [ ] ..." text, so they simply won't match.
-			// Runs in Reading view and in Live Preview: in Live Preview the cell
-			// text is still a CM6 line, so the boxes are drawn from the rendered
-			// table cells that sit inside the editor.
+			// Reading view gets the full list DOM (checkbox themes style it).
+			// Live Preview gets only a lightweight inline box: rebuilding a
+			// ul/li/flex structure inside the editor's table cell changes the
+			// row height and shifts the whole table.
 			view.contentEl
 				.querySelectorAll<HTMLTableCellElement>("td, th")
 				.forEach((cell) => {
@@ -131,7 +132,11 @@ export default class FlexibleTasksPlugin extends Plugin {
 					if (!match) return;
 					const table = cell.closest("table");
 					if (!table) return;
-					this.decorateCell(cell, match[1], (match[2] ?? "").trim(), view, table);
+					if (view.getMode() === "preview") {
+						this.decorateCell(cell, match[1], (match[2] ?? "").trim(), view, table);
+					} else {
+						this.decorateCellInline(cell, match[1], view, table);
+					}
 				});
 
 			// Block-list tasks outside tables (opt-in). Only in Reading view:
@@ -150,6 +155,60 @@ export default class FlexibleTasksPlugin extends Plugin {
 	}
 
 	// --- Table cells -------------------------------------------------------
+
+	/**
+	 * Live Preview variant: replace the "- [ ]" marker with a single inline box
+	 * and leave the rest of the cell text alone. No ul/li/flex, so the editor's
+	 * row height is untouched and the table keeps its normal size.
+	 */
+	private decorateCellInline(
+		cell: HTMLTableCellElement,
+		status: string,
+		view: MarkdownView,
+		table: HTMLTableElement
+	) {
+		const marker = cell.querySelector(".tot-cell-box");
+		if (marker || cell.querySelector(".tot-cell-list")) return;
+
+		const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+		let node = walker.nextNode() as Text | null;
+		while (node) {
+			const hit = /[-*+]\s+\[(.)\]/.exec(node.nodeValue ?? "");
+			if (hit) break;
+			node = walker.nextNode() as Text | null;
+		}
+		if (!node) return;
+
+		const text = node.nodeValue ?? "";
+		const hit = /[-*+]\s+\[(.)\]\s*/.exec(text);
+		if (!hit) return;
+
+		const before = document.createTextNode(text.slice(0, hit.index));
+		const after = document.createTextNode(text.slice(hit.index + hit[0].length));
+		const box = document.createElement("span");
+		box.className = "tot-cell-box";
+		if (isDone(status)) box.addClass("tot-cell-box-done");
+		box.title = statusTooltip(status);
+
+		const parent = node.parentNode;
+		if (!parent) return;
+		parent.insertBefore(before, node);
+		parent.insertBefore(box, node);
+		parent.insertBefore(after, node);
+		parent.removeChild(node);
+
+		box.addEventListener("click", (evt) => {
+			evt.preventDefault();
+			evt.stopPropagation();
+			const next = isDone(status) ? " " : "x";
+			void this.writeCellStatus(view, table, cell, next, box, null);
+		});
+		box.addEventListener("contextmenu", (evt) =>
+			this.showStatusMenu(evt, status, (char) => {
+				void this.writeCellStatus(view, table, cell, char, box, null);
+			})
+		);
+	}
 
 	private decorateCell(
 		cell: HTMLTableCellElement,
@@ -348,7 +407,7 @@ export default class FlexibleTasksPlugin extends Plugin {
 		cell: HTMLTableCellElement,
 		newChar: string,
 		wrap: HTMLElement,
-		input: HTMLInputElement
+		input: HTMLInputElement | null
 	) {
 		const file = view.file;
 		if (!(file instanceof TFile)) return;
@@ -384,11 +443,17 @@ export default class FlexibleTasksPlugin extends Plugin {
 		// Repaint optimistically on success; Obsidian also re-renders off the new
 		// source (which re-runs decorateCell), so this just avoids any flash.
 		if (changed) {
-			wrap.dataset.task = newChar;
-			wrap.toggleClass("is-checked", isDone(newChar));
-			wrap.toggleClass("is-struck", isStruck(newChar));
-			wrap.title = statusTooltip(newChar);
-			this.paintCheckbox(input, newChar);
+			if (input) {
+				wrap.dataset.task = newChar;
+				wrap.toggleClass("is-checked", isDone(newChar));
+				wrap.toggleClass("is-struck", isStruck(newChar));
+				wrap.title = statusTooltip(newChar);
+				this.paintCheckbox(input, newChar);
+			} else {
+				// Live Preview inline box: only the checked state is drawn.
+				wrap.toggleClass("tot-cell-box-done", isDone(newChar));
+				wrap.title = statusTooltip(newChar);
+			}
 		}
 	}
 

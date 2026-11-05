@@ -1,6 +1,6 @@
 {
 	"name": "flexible-tasks",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"description": "Interactive task checkboxes in Markdown table cells and lists, with custom statuses styled by your theme.",
 	"main": "main.js",
 	"scripts": {
