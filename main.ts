@@ -446,8 +446,8 @@ export default class FlexibleTasksPlugin extends Plugin {
 		const starts: number[] = [];
 		const isDelim = (s: string) => /^[\s|:-]+$/.test(s) && s.includes("-");
 		for (let i = 0; i + 1 < lines.length; i++) {
-			const cur = this.stripPrefix(lines[i]);
-			const next = this.stripPrefix(lines[i + 1]);
+			const cur = this.strip(lines[i]);
+			const next = this.strip(lines[i + 1]);
 			if (cur.includes("|") && isDelim(next)) starts.push(i);
 		}
 		return starts;
@@ -457,6 +457,11 @@ export default class FlexibleTasksPlugin extends Plugin {
 	private stripPrefix(line: string): string {
 		const m = line.match(/^((?:\s*>)*\s*)/);
 		return m ? m[1] : "";
+	}
+
+	/** The line without its blockquote/indent prefix. */
+	private strip(line: string): string {
+		return line.slice(this.stripPrefix(line).length);
 	}
 
 	/**
@@ -474,7 +479,7 @@ export default class FlexibleTasksPlugin extends Plugin {
 		if (!firstRow) return undefined;
 		const header = Array.from(firstRow.children).map((c) => norm(c.textContent));
 		for (const start of blocks) {
-			const cells = this.stripPrefix(lines[start])
+			const cells = this.strip(lines[start])
 				.split("|")
 				.map(norm)
 				.filter((c) => c !== "");
