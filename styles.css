@@ -58,23 +58,19 @@
 
 /*
  * Live Preview alignment. In Reading view the table's own CSS centers a
- * single-line cell; inside the editor the <td> inherits the code line box
- * (vertical-align: top, editor line-height), so the inline-flex task anchors
- * to the top-left corner. Center it horizontally only: stretching the cell
- * (min-height: 100%, align-items: center) makes every row as tall as the
- * editor line and pushes the table down.
+ * single-line cell; inside the editor the <td> inherits the code line box,
+ * so the inline-flex task anchors to the top-left corner. Center it
+ * horizontally only. Everything that could change the cell's height is
+ * avoided: a flex container with align-items: center or a vertical-align on
+ * the <td> makes the row as tall as the editor line and inflates the table.
  */
 .markdown-source-view .tot-cell-list {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-.markdown-source-view td:has(> .tot-cell-list),
-.markdown-source-view th:has(> .tot-cell-list) {
-	vertical-align: middle;
-	line-height: 1.2;
+	display: block;
+	text-align: center;
 }
 .markdown-source-view .tot-cell-list > li.tot-task {
+	display: inline-flex;
 	line-height: 1.2;
 	min-height: 0;
+	vertical-align: baseline;
 }
